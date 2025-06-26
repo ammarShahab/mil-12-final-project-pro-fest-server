@@ -14,7 +14,7 @@ app.use(cors());
 app.use(express.json());
 
 /* .env
-DB_USER=parcels_DB
+DB_USER=parcel_DB
 DB_PASS=O6EaVubWJrjOctcC
 */
 
@@ -42,10 +42,26 @@ async function run() {
       res.send(result);
     });
 
-    // GET: All parcels
+    // 15.5 make the get api to show the parcel by email or show the all parcel for admin
     app.get("/parcels", async (req, res) => {
-      const result = await parcelsCollection.find().toArray();
-      res.send(result);
+      try {
+        const email = req.query.userEmail;
+        console.log(email);
+
+        const filter = email ? { email: userEmail } : {};
+        console.log(filter);
+
+        const options = {
+          sort: { creation_date: 1 }, // Ascending order
+        };
+
+        const result = await parcelsCollection.find(filter, options).toArray();
+
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ error: "Failed to fetch parcels" });
+      }
+      // 15.6 now to see in browser type "http://localhost:3000/parcels" to show the data
     });
 
     // PUT: Update parcel (delivery/payment status)
