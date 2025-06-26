@@ -46,11 +46,11 @@ async function run() {
     app.get("/parcels", async (req, res) => {
       try {
         const email = req.query.email;
-        console.log(req.query);
-        console.log("Query Email:", email);
+        // console.log(req.query);
+        // console.log("Query Email:", email);
 
         const filter = email ? { userEmail: email } : {};
-        console.log(filter);
+        // console.log(filter);
 
         const options = {
           sort: { creation_date: 1 }, // Ascending order
