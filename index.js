@@ -2,7 +2,7 @@
 
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const dotenv = require("dotenv");
 
 dotenv.config();
@@ -45,10 +45,11 @@ async function run() {
     // 15.5 make the get api to show the parcel by email or show the all parcel for admin
     app.get("/parcels", async (req, res) => {
       try {
-        const email = req.query.userEmail;
-        console.log(email);
+        const email = req.query.email;
+        console.log(req.query);
+        console.log("Query Email:", email);
 
-        const filter = email ? { email: userEmail } : {};
+        const filter = email ? { userEmail: email } : {};
         console.log(filter);
 
         const options = {
@@ -64,15 +65,19 @@ async function run() {
       // 15.6 now to see in browser type "http://localhost:3000/parcels" to show the data
     });
 
-    // PUT: Update parcel (delivery/payment status)
-    app.put("/parcels/:id", async (req, res) => {
-      const { id } = req.params;
-      const updateFields = req.body;
-      const result = await parcelsCollection.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: updateFields }
-      );
-      res.send(result);
+    // 17.1 created delete api
+    app.delete("/parcels/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+
+        const query = { _id: new ObjectId(id) };
+        const result = await parcelsCollection.deleteOne(query);
+
+        res.send(result);
+      } catch (error) {
+        console.error("❌ Delete error:", error);
+        res.status(500).send({ error: "Failed to delete parcel" });
+      }
     });
 
     app.get("/", (req, res) => {
