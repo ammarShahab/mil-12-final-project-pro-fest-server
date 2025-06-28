@@ -37,6 +37,7 @@ async function run() {
     await client.connect();
     const db = client.db("parcelDeliveryDB");
     parcelsCollection = db.collection("parcels");
+    paymentsCollection = db.collection("payments");
     console.log("✅ Connected to MongoDB");
 
     // POST: Add a parcel
@@ -116,6 +117,68 @@ async function run() {
         res.json({ clientSecret: paymentIntent.client_secret });
       } catch (error) {
         res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 21.17.8 now create mark the parcel as paid and create payment history
+
+    app.post("/payments", async (req, res) => {
+      try {
+        const {
+          parcelId,
+          userEmail,
+          amount,
+          paymentMethod,
+          transactionId,
+          payment_status,
+        } = req.body;
+
+        const paymentTime = new Date().toISOString();
+
+        // Update parcel payment status
+        const parcelUpdateResult = await parcelsCollection.updateOne(
+          { _id: new ObjectId(parcelId) },
+          { $set: { payment_status: "Paid" } }
+        );
+
+        // Save payment history
+        const paymentRecord = {
+          parcelId,
+          userEmail,
+          amount,
+          paymentMethod,
+          payment_status,
+          paymentTime,
+          transactionId,
+        };
+
+        const paymentSaveResult = await paymentsCollection.insertOne(
+          paymentRecord
+        );
+
+        res.send(paymentSaveResult);
+      } catch (error) {
+        console.error("❌ Payment processing error:", error);
+        res.status(500).send({ error: "Payment failed" });
+      }
+    });
+
+    // 21.17.9 Get Payment History by User (Client)
+    app.get("/payments", async (req, res) => {
+      try {
+        const email = req.query.email;
+
+        if (!email) return res.status(400).send({ error: "Missing email" });
+
+        const payments = await paymentsCollection
+          .find({ userEmail: email })
+          .sort({ paymentTime: -1 })
+          .toArray();
+
+        res.send(payments);
+      } catch (error) {
+        console.error("❌ Error fetching user payments:", error);
+        res.status(500).send(payments);
       }
     });
 
