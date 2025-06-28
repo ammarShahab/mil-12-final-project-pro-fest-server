@@ -12,6 +12,8 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+// 21.17.4 import the stripe from ai created doc and paste the gateway key
+const stripe = require("stripe")(process.env.PAYMENT_GATEWAY_KEY);
 
 /* .env
 DB_USER=parcel_DB
@@ -96,6 +98,22 @@ async function run() {
       } catch (error) {
         console.error("❌ Delete error:", error);
         res.status(500).send({ error: "Failed to delete parcel" });
+      }
+    });
+
+    // 21.17 Create a PaymentIntent. Note: code is created by ai on that site ai assistant using command "i want to create custom card payment system using node js". then install stripe "npm install stripe". Now follow the step to apply stripe => create account in stripe https://docs.stripe.com/sdks.=> In dashboard if that site u will get Api keys. now copy the publishable key and save to client site dotenv.local => copy the secret key and save to server .env name gateway key.
+    app.post("/create-payment-intent", async (req, res) => {
+      const amountInCents = req.body.amountInCents;
+      try {
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: amountInCents,
+          currency: "usd",
+          payment_method_types: ["card"],
+        });
+
+        res.json({ clientSecret: paymentIntent.client_secret });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
       }
     });
 
