@@ -18,6 +18,8 @@ const stripe = require("stripe")(process.env.PAYMENT_GATEWAY_KEY);
 /* .env
 DB_USER=parcel_DB
 DB_PASS=O6EaVubWJrjOctcC
+
+PAYMENT_GATEWAY_KEY=sk_test_51ResXyPDXAjOVcw8VNGP2DgTWFLAeCiUext7KD1tFqXlc8DaADjd0HqyuRA6QFfq6nKCz6MccD3d51cJLZ5GF5cC00hxQOcsmZ
 */
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.bmunlsr.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
