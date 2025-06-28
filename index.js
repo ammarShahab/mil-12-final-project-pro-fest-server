@@ -65,6 +65,25 @@ async function run() {
       // 15.6 now to see in browser type "http://localhost:3000/parcels" to show the data
     });
 
+    // 21.16.2 make  a get api to find a parcel by id
+    app.get("/parcels/:parcelId", async (req, res) => {
+      try {
+        const id = req.params.parcelId;
+
+        const query = { _id: new ObjectId(id) };
+        const parcel = await parcelsCollection.findOne(query);
+
+        if (parcel) {
+          res.send(parcel);
+        } else {
+          res.status(404).send({ error: "Parcel not found" });
+        }
+      } catch (error) {
+        console.error("❌ Error fetching parcel:", error);
+        res.status(500).send({ error: "Failed to fetch parcel" });
+      }
+    });
+
     // 17.1 created delete api
     app.delete("/parcels/:id", async (req, res) => {
       try {
