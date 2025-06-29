@@ -126,7 +126,7 @@ async function run() {
       try {
         const {
           parcelId,
-          userEmail,
+          email,
           amount,
           paymentMethod,
           transactionId,
@@ -144,13 +144,15 @@ async function run() {
         // Save payment history
         const paymentRecord = {
           parcelId,
-          userEmail,
+          email,
           amount,
           paymentMethod,
           payment_status,
           paymentTime,
           transactionId,
         };
+
+        console.log(paymentRecord);
 
         const paymentSaveResult = await paymentsCollection.insertOne(
           paymentRecord
