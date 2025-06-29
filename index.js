@@ -56,12 +56,6 @@ async function run() {
         let userExist = await usersCollection.findOne({ email });
 
         if (userExist) {
-          // Update last login
-          /*  await usersCollection.updateOne(
-            { email },
-            { $set: { last_log_in: now } }
-          );
-          user.last_log_in = now; */
           return res
             .status(200)
             .send({ message: "user  already exists", inserted: false });
