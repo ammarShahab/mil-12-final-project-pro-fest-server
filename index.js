@@ -166,14 +166,15 @@ async function run() {
     });
 
     // 21.17.9 Get Payment History by User (Client)
-    app.get("/payments", async (req, res) => {
+    /* app.get("/payments", async (req, res) => {
       try {
         const email = req.query.email;
+
 
         if (!email) return res.status(400).send({ error: "Missing email" });
 
         const payments = await paymentsCollection
-          .find({ userEmail: email })
+          .find({ email })
           .sort({ paymentTime: -1 })
           .toArray();
 
@@ -181,6 +182,24 @@ async function run() {
       } catch (error) {
         console.error("❌ Error fetching user payments:", error);
         res.status(500).send(payments);
+      }
+    }); */
+
+    app.get("/payments", async (req, res) => {
+      try {
+        const email = req.query.email;
+
+        const filter = email ? { email } : {};
+
+        const payments = await paymentsCollection
+          .find(filter)
+          .sort({ paymentTime: -1 }) // latest first
+          .toArray();
+
+        res.send(payments);
+      } catch (error) {
+        console.error("Error fetching payments:", error);
+        res.status(500).send({ error: "Failed to load payments" });
       }
     });
 
