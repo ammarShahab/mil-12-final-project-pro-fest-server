@@ -48,7 +48,7 @@ async function run() {
       res.send(result);
     });
 
-    // 23.0 my requirement is create a user database to save user data by email and also check if the user is present it will not create user in db but if not present it will create user in db. By default add the user role=user
+    // 23.0 my requirement is create a user database to save user data by email and also check if the user is present during create user account it will not create user in db but if not present it will create user in db. By default add the user role=user
     app.post("/users", async (req, res) => {
       try {
         const email = req.body.email;
