@@ -166,24 +166,6 @@ async function run() {
     });
 
     // 21.17.9 Get Payment History by User (Client)
-    /* app.get("/payments", async (req, res) => {
-      try {
-        const email = req.query.email;
-
-
-        if (!email) return res.status(400).send({ error: "Missing email" });
-
-        const payments = await paymentsCollection
-          .find({ email })
-          .sort({ paymentTime: -1 })
-          .toArray();
-
-        res.send(payments);
-      } catch (error) {
-        console.error("❌ Error fetching user payments:", error);
-        res.status(500).send(payments);
-      }
-    }); */
 
     app.get("/payments", async (req, res) => {
       try {
