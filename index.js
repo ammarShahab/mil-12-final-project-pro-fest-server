@@ -38,6 +38,7 @@ async function run() {
     const db = client.db("parcelDeliveryDB");
     parcelsCollection = db.collection("parcels");
     paymentsCollection = db.collection("payments");
+    usersCollection = db.collection("users");
     console.log("✅ Connected to MongoDB");
 
     // POST: Add a parcel
@@ -45,6 +46,36 @@ async function run() {
       const parcel = req.body;
       const result = await parcelsCollection.insertOne(parcel);
       res.send(result);
+    });
+
+    // 23.0 my requirement is create a user database to save user data by email and also check if the user is present it will not create user in db but if not present it will create user in db. By default add the user role=user
+    app.post("/users", async (req, res) => {
+      try {
+        const email = req.body.email;
+
+        let userExist = await usersCollection.findOne({ email });
+
+        if (userExist) {
+          // Update last login
+          /*  await usersCollection.updateOne(
+            { email },
+            { $set: { last_log_in: now } }
+          );
+          user.last_log_in = now; */
+          return res
+            .status(200)
+            .send({ message: "user  already exists", inserted: false });
+        }
+
+        // 23.2 if user is not exists the userInfo that is created in 23.1 will be in req.body
+        const user = req.body;
+        const result = await usersCollection.insertOne(user);
+
+        res.send(result);
+      } catch (error) {
+        console.error("User check error:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
     });
 
     // 15.5 make the get api to show the parcel by email or show the all parcel for admin
