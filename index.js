@@ -4,16 +4,26 @@ const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const dotenv = require("dotenv");
+// 25.8 import
+const admin = require("firebase-admin");
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+// middleware
 app.use(cors());
 app.use(express.json());
 // 21.17.4 import the stripe from ai created doc and paste the gateway key
 const stripe = require("stripe")(process.env.PAYMENT_GATEWAY_KEY);
+
+// 25.8.1 import from firbase
+const serviceAccount = require("./firebase_admin_key.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 /* .env
 DB_USER=parcel_DB
@@ -36,10 +46,44 @@ async function run() {
   try {
     await client.connect();
     const db = client.db("parcelDeliveryDB");
-    parcelsCollection = db.collection("parcels");
-    paymentsCollection = db.collection("payments");
-    usersCollection = db.collection("users");
+    const parcelsCollection = db.collection("parcels");
+    const paymentsCollection = db.collection("payments");
+    const usersCollection = db.collection("users");
     console.log("✅ Connected to MongoDB");
+
+    // 25.3 create custom middleware for verify token
+    const verifyFBToken = async (req, res, next) => {
+      console.log("header in middleware", req.headers); //to check, set this verifyFBToken in any get between " app.get("/parcels", verifyFBToken, async (req,res)..." method then refresh the specific page u will get the headers data in the server side console
+
+      // 25.5 checking the header is present or not
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).send({ message: "unauthorized access" });
+      }
+
+      // 25.6 if headers present check token is present or not
+      const token = authHeader.split(" ")[1];
+      if (!token) {
+        return res.status(401).send({ message: "unauthorized access" });
+      }
+
+      // 25.7 now we need a firebase admin key  to verify the token so first go to firebase => select the project => select the service account tab => in Learn More => run "npm install firebase-admin --save" => Now again go to the service account and copy the code "var admin = require("firebase-admin"); var serviceAccount = require("path/to/serviceAccountKey.json"); admin.initializeApp({ credential: admin.credential.cert(serviceAccount)})" => paste it in 25.8 and 25.8.1 for import => then press Generate new private key to download => copy the key file to sever side and change the name to "firebase_admin_key" => change the path in 25.8.1
+
+      // 25.9 verifying the token
+      try {
+        const decoded = await admin.auth().verifyIdToken(token);
+        req.decoded = decoded;
+        // 25.10 call next
+        next();
+
+        // 25.11 now from this step as we used verifyFBToken in ("/parcels", verifyFBToken, async (req,res)..."). now tocheck it is working or not paste in browser url and change the email who is not logged in "http://localhost:3000/parcels?email=job@cob.com". u will get {"message": "unauthorized access"}
+      } catch (error) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+
+      // 25.4 primarily directly used here but it will be used conditionally later in 25.10 thats why commented
+      // next();
+    };
 
     // POST: Add a parcel
     app.post("/parcels", async (req, res) => {
@@ -73,7 +117,7 @@ async function run() {
     });
 
     // 15.5 make the get api to show the parcel by email or show the all parcel for admin
-    app.get("/parcels", async (req, res) => {
+    app.get("/parcels", verifyFBToken, async (req, res) => {
       try {
         const email = req.query.email;
         // console.log(req.query);
@@ -96,7 +140,7 @@ async function run() {
     });
 
     // 21.16.2 make  a get api to find a parcel by id
-    app.get("/parcels/:parcelId", async (req, res) => {
+    app.get("/parcels/:parcelId", verifyFBToken, async (req, res) => {
       try {
         const id = req.params.parcelId;
 
@@ -147,7 +191,7 @@ async function run() {
 
     // 21.17.8 now create mark the parcel as paid and create payment history
 
-    app.post("/payments", async (req, res) => {
+    app.post("/payments", verifyFBToken, async (req, res) => {
       try {
         const {
           parcelId,
@@ -192,9 +236,15 @@ async function run() {
 
     // 21.17.9 Get Payment History by User (Client)
 
-    app.get("/payments", async (req, res) => {
+    app.get("/payments", verifyFBToken, async (req, res) => {
       try {
         const email = req.query.email;
+
+        // 25.12 verify the payments according to email
+        console.log("decoded", req.decoded);
+        if (req.decoded.email !== email) {
+          return res.status(403).send({ message: "forbidden access" });
+        }
 
         const filter = email ? { email } : {};
 
