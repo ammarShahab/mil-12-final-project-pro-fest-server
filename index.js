@@ -155,13 +155,25 @@ async function run() {
     // 27.3 create patch api for update the status in db
     app.patch("/riders/:id", async (req, res) => {
       const id = req.params.id;
-      const { status } = req.body;
+      // 28.4 took the email from the body
+      const { status, email } = req.body;
 
       try {
         const result = await ridersCollection.updateOne(
           { _id: new ObjectId(id) },
           { $set: { status } }
         );
+
+        // 28.5 create query to find with email
+        const query = { email };
+        const updatedDoc = {
+          $set: {
+            role: "rider",
+          },
+        };
+
+        const roleResult = await usersCollection.updateOne(query, updatedDoc);
+        console.log("modified Count", roleResult.modifiedCount);
 
         res.send(result);
       } catch (error) {
