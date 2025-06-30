@@ -155,7 +155,7 @@ async function run() {
     // 27.3 create patch api for update the status in db
     app.patch("/riders/:id", async (req, res) => {
       const id = req.params.id;
-      // 28.4 took the email from the body
+      // 29.4 took the email from the body
       const { status, email } = req.body;
 
       try {
@@ -164,14 +164,14 @@ async function run() {
           { $set: { status } }
         );
 
-        // 28.5 create query to find with email
+        // 29.5 create query to find with email
         const query = { email };
         const updatedDoc = {
           $set: {
             role: "rider",
           },
         };
-
+        // 29.6 update the role using email
         const roleResult = await usersCollection.updateOne(query, updatedDoc);
         console.log("modified Count", roleResult.modifiedCount);
 
