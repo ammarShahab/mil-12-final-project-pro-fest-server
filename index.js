@@ -49,6 +49,7 @@ async function run() {
     const parcelsCollection = db.collection("parcels");
     const paymentsCollection = db.collection("payments");
     const usersCollection = db.collection("users");
+    const ridersCollection = db.collection("riders");
     console.log("✅ Connected to MongoDB");
 
     // 25.3 create custom middleware for verify token
@@ -113,6 +114,28 @@ async function run() {
       } catch (error) {
         console.error("User check error:", error);
         res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
+    // 26.3 create a post api for riders
+    app.post("/riders", async (req, res) => {
+      const rider = req.body;
+
+      // rider.status = "Pending"; // enforce default
+      const result = await ridersCollection.insertOne(rider);
+      res.send(result);
+    });
+
+    // 27.0 my requirement is create get api to send the pending riders data to ui
+    app.get("/riders/pending", async (req, res) => {
+      try {
+        const pendingRiders = await ridersCollection
+          .find({ status: "Pending" })
+          .toArray();
+        res.send(pendingRiders);
+      } catch (err) {
+        console.error("Error fetching pending riders:", err);
+        res.status(500).send({ message: "Internal Server Error" });
       }
     });
 
