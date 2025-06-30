@@ -139,6 +139,19 @@ async function run() {
       }
     });
 
+    // 28.1 create the approved rider api
+    app.get("/riders/approved", async (req, res) => {
+      try {
+        const approvedRiders = await ridersCollection
+          .find({ status: "Approved" })
+          .toArray();
+        res.send(approvedRiders);
+      } catch (error) {
+        console.error("Error fetching approved riders:", error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
+    });
+
     // 27.3 create patch api for update the status in db
     app.patch("/riders/:id", async (req, res) => {
       const id = req.params.id;
