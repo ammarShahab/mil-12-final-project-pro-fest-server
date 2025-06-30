@@ -126,7 +126,7 @@ async function run() {
       res.send(result);
     });
 
-    // 27.0 my requirement is create get api to send the pending riders data to ui
+    // 27.0 my requirement is create get api to send the pending riders data to ui and upon approve or reject the rider status will be save in db
     app.get("/riders/pending", async (req, res) => {
       try {
         const pendingRiders = await ridersCollection
@@ -135,6 +135,24 @@ async function run() {
         res.send(pendingRiders);
       } catch (err) {
         console.error("Error fetching pending riders:", err);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
+    });
+
+    // 27.3 create patch api for update the status in db
+    app.patch("/riders/:id", async (req, res) => {
+      const id = req.params.id;
+      const { status } = req.body;
+
+      try {
+        const result = await ridersCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { status } }
+        );
+
+        res.send(result);
+      } catch (error) {
+        console.error("Error updating rider status:", error);
         res.status(500).send({ message: "Internal Server Error" });
       }
     });
