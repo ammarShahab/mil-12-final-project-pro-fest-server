@@ -127,7 +127,8 @@ async function run() {
     });
 
     // 27.0 my requirement is create get api to send the pending riders data to ui and upon approve or reject the rider status will be save in db
-    app.get("/riders/pending", async (req, res) => {
+    // 31.9 implement the token to stop the user to show server data manually
+    app.get("/riders/pending", verifyFBToken, async (req, res) => {
       try {
         const pendingRiders = await ridersCollection
           .find({ status: "Pending" })
@@ -138,6 +139,8 @@ async function run() {
         res.status(500).send({ message: "Internal Server Error" });
       }
     });
+
+    // 31.10 but we also have to verify the api layer i.e user have token but his role is admin or not. this should be also verified.
 
     // 28.1 create the approved rider api
     app.get("/riders/approved", async (req, res) => {
