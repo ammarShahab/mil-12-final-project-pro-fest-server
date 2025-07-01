@@ -152,36 +152,6 @@ async function run() {
       }
     });
 
-    // 27.3 create patch api for update the status in db
-    app.patch("/riders/:id", async (req, res) => {
-      const id = req.params.id;
-      // 29.4 took the email from the body
-      const { status, email } = req.body;
-
-      try {
-        const result = await ridersCollection.updateOne(
-          { _id: new ObjectId(id) },
-          { $set: { status } }
-        );
-
-        // 29.5 create query to find with email
-        const query = { email };
-        const updatedDoc = {
-          $set: {
-            role: "rider",
-          },
-        };
-        // 29.6 update the role using email
-        const roleResult = await usersCollection.updateOne(query, updatedDoc);
-        console.log("modified Count", roleResult.modifiedCount);
-
-        res.send(result);
-      } catch (error) {
-        console.error("Error updating rider status:", error);
-        res.status(500).send({ message: "Internal Server Error" });
-      }
-    });
-
     // 15.5 make the get api to show the parcel by email or show the all parcel for admin
     app.get("/parcels", verifyFBToken, async (req, res) => {
       try {
@@ -221,6 +191,72 @@ async function run() {
       } catch (error) {
         console.error("❌ Error fetching parcel:", error);
         res.status(500).send({ error: "Failed to fetch parcel" });
+      }
+    });
+
+    // 30.0 my requirement is admin can search user by email with a single word search and change the user role to admin/ user.
+    // 30.1 creating a search api
+    app.get("/users/search", async (req, res) => {
+      const emailQuery = req.query.email;
+      if (!emailQuery) {
+        return res.status(400).send({ message: "Email query is required" });
+      }
+
+      try {
+        const users = await usersCollection
+          .find({
+            email: { $regex: emailQuery, $options: "i" }, // partial match, case-insensitive
+          })
+          .project({ email: 1, created_at: 1, role: 1 }) // only necessary fields
+          .toArray();
+
+        if (users.length === 0) {
+          return res.status(404).send({ message: "No matching users found" });
+        }
+
+        res.send(users);
+      } catch (error) {
+        console.error("User search error:", error);
+        res.status(500).send({ message: "Internal server error" });
+      }
+    });
+
+    // 21.17.9 Get Payment History by User (Client)
+
+    app.get("/payments", verifyFBToken, async (req, res) => {
+      try {
+        const email = req.query.email;
+
+        // 25.12 verify the payments according to email
+        console.log("decoded", req.decoded);
+        if (req.decoded.email !== email) {
+          return res.status(403).send({ message: "forbidden access" });
+        }
+
+        const filter = email ? { email } : {};
+
+        const payments = await paymentsCollection
+          .find(filter)
+          .sort({ paymentTime: -1 }) // latest first
+          .toArray();
+
+        res.send(payments);
+      } catch (error) {
+        console.error("Error fetching payments:", error);
+        res.status(500).send({ error: "Failed to load payments" });
+      }
+    });
+
+    // 31.0 My requirement is create a admin protected route
+
+    // 31.1 create a get api to get the role from user
+    app.get("/users/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = await usersCollection.findOne({ email });
+      if (user) {
+        res.send({ role: user.role || "user" });
+      } else {
+        return res.status(404).send({ message: "user not found" });
       }
     });
 
@@ -300,30 +336,33 @@ async function run() {
       }
     });
 
-    // 30.0 my requirement is admin can search user by email with a single word search and change the user role to admin/ user.
-    // 30.1 creating a search api
-    app.get("/users/search", async (req, res) => {
-      const emailQuery = req.query.email;
-      if (!emailQuery) {
-        return res.status(400).send({ message: "Email query is required" });
-      }
+    // 27.3 create patch api for update the status in db
+    app.patch("/riders/:id", async (req, res) => {
+      const id = req.params.id;
+      // 29.4 took the email from the body
+      const { status, email } = req.body;
 
       try {
-        const users = await usersCollection
-          .find({
-            email: { $regex: emailQuery, $options: "i" }, // partial match, case-insensitive
-          })
-          .project({ email: 1, created_at: 1, role: 1 }) // only necessary fields
-          .toArray();
+        const result = await ridersCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { status } }
+        );
 
-        if (users.length === 0) {
-          return res.status(404).send({ message: "No matching users found" });
-        }
+        // 29.5 create query to find with email
+        const query = { email };
+        const updatedDoc = {
+          $set: {
+            role: "rider",
+          },
+        };
+        // 29.6 update the role using email
+        const roleResult = await usersCollection.updateOne(query, updatedDoc);
+        console.log("modified Count", roleResult.modifiedCount);
 
-        res.send(users);
+        res.send(result);
       } catch (error) {
-        console.error("User search error:", error);
-        res.status(500).send({ message: "Internal server error" });
+        console.error("Error updating rider status:", error);
+        res.status(500).send({ message: "Internal Server Error" });
       }
     });
 
@@ -344,32 +383,6 @@ async function run() {
       } catch (error) {
         console.error("Role update error:", error);
         res.status(500).send({ message: "Internal Server Error" });
-      }
-    });
-
-    // 21.17.9 Get Payment History by User (Client)
-
-    app.get("/payments", verifyFBToken, async (req, res) => {
-      try {
-        const email = req.query.email;
-
-        // 25.12 verify the payments according to email
-        console.log("decoded", req.decoded);
-        if (req.decoded.email !== email) {
-          return res.status(403).send({ message: "forbidden access" });
-        }
-
-        const filter = email ? { email } : {};
-
-        const payments = await paymentsCollection
-          .find(filter)
-          .sort({ paymentTime: -1 }) // latest first
-          .toArray();
-
-        res.send(payments);
-      } catch (error) {
-        console.error("Error fetching payments:", error);
-        res.status(500).send({ error: "Failed to load payments" });
       }
     });
 
