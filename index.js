@@ -300,6 +300,53 @@ async function run() {
       }
     });
 
+    // 30.0 my requirement is admin can search user by email with a single word search and change the user role to admin/ user.
+    // 30.1 creating a search api
+    app.get("/users/search", async (req, res) => {
+      const emailQuery = req.query.email;
+      if (!emailQuery) {
+        return res.status(400).send({ message: "Email query is required" });
+      }
+
+      try {
+        const users = await usersCollection
+          .find({
+            email: { $regex: emailQuery, $options: "i" }, // partial match, case-insensitive
+          })
+          .project({ email: 1, created_at: 1, role: 1 }) // only necessary fields
+          .toArray();
+
+        if (users.length === 0) {
+          return res.status(404).send({ message: "No matching users found" });
+        }
+
+        res.send(users);
+      } catch (error) {
+        console.error("User search error:", error);
+        res.status(500).send({ message: "Internal server error" });
+      }
+    });
+
+    // 30.5 update role api
+    app.patch("/users/role", async (req, res) => {
+      const { email, role } = req.body;
+
+      if (!email || !role) {
+        return res.status(400).send({ message: "Email and role are required" });
+      }
+
+      try {
+        const result = await usersCollection.updateOne(
+          { email },
+          { $set: { role } }
+        );
+        res.send(result);
+      } catch (error) {
+        console.error("Role update error:", error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
+    });
+
     // 21.17.9 Get Payment History by User (Client)
 
     app.get("/payments", verifyFBToken, async (req, res) => {
