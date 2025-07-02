@@ -86,6 +86,17 @@ async function run() {
       // next();
     };
 
+    // 32.0 my requirement is as like as verifyFBToken we will also verify admin using custom middleware. as we know the email and token is comes from decoded. we use email here to find the role.
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      if (!user || user.role !== "admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
+
     // POST: Add a parcel
     app.post("/parcels", async (req, res) => {
       const parcel = req.body;
@@ -127,8 +138,9 @@ async function run() {
     });
 
     // 27.0 my requirement is create get api to send the pending riders data to ui and upon approve or reject the rider status will be save in db
-    // 31.9 implement the token to stop the user to show server data manually
-    app.get("/riders/pending", verifyFBToken, async (req, res) => {
+    // 31.9 implement the token to stop the user to see server side data manually
+    // 32.1 use verifyAdmin
+    app.get("/riders/pending", verifyFBToken, verifyAdmin, async (req, res) => {
       try {
         const pendingRiders = await ridersCollection
           .find({ status: "Pending" })
@@ -143,39 +155,58 @@ async function run() {
     // 31.10 but we also have to verify the api layer i.e user have token but his role is admin or not. this should be also verified.
 
     // 28.1 create the approved rider api
-    app.get("/riders/approved", async (req, res) => {
-      try {
-        const approvedRiders = await ridersCollection
-          .find({ status: "Approved" })
-          .toArray();
-        res.send(approvedRiders);
-      } catch (error) {
-        console.error("Error fetching approved riders:", error);
-        res.status(500).send({ message: "Internal Server Error" });
+    // 32.2 use verifyAdmin
+    app.get(
+      "/riders/approved",
+      verifyFBToken,
+      verifyAdmin,
+      async (req, res) => {
+        try {
+          const approvedRiders = await ridersCollection
+            .find({ status: "Approved" })
+            .toArray();
+          res.send(approvedRiders);
+        } catch (error) {
+          console.error("Error fetching approved riders:", error);
+          res.status(500).send({ message: "Internal Server Error" });
+        }
       }
-    });
+    );
 
     // 15.5 make the get api to show the parcel by email or show the all parcel for admin
     app.get("/parcels", verifyFBToken, async (req, res) => {
       try {
+        // 15.5.1
         const email = req.query.email;
-        // console.log(req.query);
-        // console.log("Query Email:", email);
+        // 34.3
+        const status = req.query.status;
 
-        const filter = email ? { userEmail: email } : {};
-        // console.log(filter);
+        console.log("Query Email:", email);
+        console.log("Query Status:", status);
+        // 15.5.2
+        const filter = {};
+        // 15.5.3
+        if (email) {
+          filter.userEmail = email;
+        }
+
+        // 34.4
+        if (email && status === "assignable") {
+          filter.delivery_status = "Pending";
+          filter.payment_status = "Paid";
+        }
 
         const options = {
-          sort: { creation_date: 1 }, // Ascending order
+          sort: { creation_date: 1 },
         };
 
         const result = await parcelsCollection.find(filter, options).toArray();
-
         res.send(result);
       } catch (error) {
+        console.error("Parcel fetch error:", error);
         res.status(500).send({ error: "Failed to fetch parcels" });
+        // 15.6 now to see in browser type "http://localhost:3000/parcels" to show the data
       }
-      // 15.6 now to see in browser type "http://localhost:3000/parcels" to show the data
     });
 
     // 21.16.2 make  a get api to find a parcel by id
