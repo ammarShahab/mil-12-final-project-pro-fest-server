@@ -137,6 +137,28 @@ async function run() {
       res.send(result);
     });
 
+    // 35.0 my requirement is assign the parcel to the specific region rider and update the delivery status
+    app.get("/riders", verifyFBToken, async (req, res) => {
+      try {
+        const district = req.query.district;
+        if (!district) {
+          return res
+            .status(400)
+            .send({ message: "district query is required" });
+        }
+
+        const riders = await ridersCollection
+          .find({ district /* status: "Approved"  */ })
+          .project({ _id: 1, name: 1, email: 1, district: 1 })
+          .toArray();
+
+        res.send(riders);
+      } catch (error) {
+        console.error("Failed to fetch riders:", error);
+        res.status(500).send({ message: "Server error" });
+      }
+    });
+
     // 27.0 my requirement is create get api to send the pending riders data to ui and upon approve or reject the rider status will be save in db
     // 31.9 implement the token to stop the user to see server side data manually
     // 32.1 use verifyAdmin
@@ -178,13 +200,15 @@ async function run() {
       try {
         // 15.5.1
         const email = req.query.email;
-        // 34.3
+        // 34.3 find the parcel by status="assignable"
         const status = req.query.status;
 
         console.log("Query Email:", email);
         console.log("Query Status:", status);
+
         // 15.5.2
         const filter = {};
+
         // 15.5.3
         if (email) {
           filter.userEmail = email;
