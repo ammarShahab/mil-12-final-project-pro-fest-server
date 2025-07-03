@@ -252,6 +252,33 @@ async function run() {
       }
     });
 
+    // 35.4
+    app.patch("/parcels/:id/assign-rider", verifyFBToken, async (req, res) => {
+      try {
+        const parcelId = req.params.id;
+        const { riderId } = req.body;
+
+        if (!riderId) {
+          return res.status(400).send({ message: "riderId is required" });
+        }
+
+        const result = await parcelsCollection.updateOne(
+          { _id: new ObjectId(parcelId) },
+          {
+            $set: {
+              riderId,
+              delivery_status: "Assigned",
+            },
+          }
+        );
+
+        res.send(result);
+      } catch (error) {
+        console.error("Failed to assign rider:", error);
+        res.status(500).send({ message: "Assignment failed" });
+      }
+    });
+
     // 30.0 my requirement is admin can search user by email with a single word search and change the user role to admin/ user.
     // 30.1 creating a search api
     app.get("/users/search", async (req, res) => {
