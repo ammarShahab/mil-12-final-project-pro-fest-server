@@ -256,7 +256,7 @@ async function run() {
     app.patch("/parcels/:id/assign-rider", verifyFBToken, async (req, res) => {
       try {
         const parcelId = req.params.id;
-        const { riderId } = req.body;
+        const { riderId, riderName, riderEmail } = req.body;
 
         if (!riderId) {
           return res.status(400).send({ message: "riderId is required" });
@@ -266,7 +266,9 @@ async function run() {
           { _id: new ObjectId(parcelId) },
           {
             $set: {
-              riderId,
+              assign_rider_id: riderId,
+              assign_rider_name: riderName,
+              assign_rider_email: riderEmail, // ✅ New field
               delivery_status: "Assigned",
             },
           }
