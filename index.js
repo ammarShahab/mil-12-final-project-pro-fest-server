@@ -137,7 +137,7 @@ async function run() {
       res.send(result);
     });
 
-    // 35.0 my requirement is assign the parcel to the specific region rider and update the delivery status
+    // 35.0 my requirement is assign the parcel to the specific region rider and update the delivery status sending the rider name, email, id to the parcelsCollection
     app.get("/riders", verifyFBToken, async (req, res) => {
       try {
         const district = req.query.district;
@@ -194,6 +194,32 @@ async function run() {
         }
       }
     );
+
+    // 36.4 create api to find the delivery_status
+    app.get("/rider/parcel", verifyFBToken, async (req, res) => {
+      try {
+        const email = req.query.email;
+
+        if (!email) {
+          return res.status(400).send({ message: "Email query is required" });
+        }
+
+        const filter = {
+          userEmail: email,
+          delivery_status: { $in: ["Assigned", "In-Transit"] }, // ✅ match either
+        };
+
+        const options = {
+          sort: { creation_date: -1 }, // Most recent first
+        };
+
+        const result = await parcelsCollection.find(filter, options).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching active parcels:", error);
+        res.status(500).send({ message: "Failed to fetch active parcels" });
+      }
+    });
 
     // 15.5 make the get api to show the parcel by email or show the all parcel for admin
     app.get("/parcels", verifyFBToken, async (req, res) => {
