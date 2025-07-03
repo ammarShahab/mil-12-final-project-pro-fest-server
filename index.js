@@ -278,6 +278,30 @@ async function run() {
       }
     });
 
+    // 36.8
+    app.patch("/parcels/:id/update-status", verifyFBToken, async (req, res) => {
+      try {
+        const parcelId = req.params.id;
+        const { delivery_status } = req.body;
+
+        if (!delivery_status) {
+          return res
+            .status(400)
+            .send({ message: "delivery_status is required" });
+        }
+
+        const result = await parcelsCollection.updateOne(
+          { _id: new ObjectId(parcelId) },
+          { $set: { delivery_status } }
+        );
+
+        res.send(result);
+      } catch (error) {
+        console.error("Error updating delivery status:", error);
+        res.status(500).send({ message: "Failed to update status" });
+      }
+    });
+
     // 35.4
     app.patch("/parcels/:id/assign-rider", verifyFBToken, async (req, res) => {
       try {
