@@ -205,7 +205,7 @@ async function run() {
         }
 
         const filter = {
-          userEmail: email,
+          assign_rider_email: email,
           delivery_status: { $in: ["Assigned", "In-Transit"] }, // ✅ match either
         };
 
