@@ -215,7 +215,7 @@ async function run() {
         }
 
         // 34.4
-        if (email && status === "assignable") {
+        if (status === "assignable") {
           filter.delivery_status = "Pending";
           filter.payment_status = "Paid";
         }
@@ -276,32 +276,6 @@ async function run() {
       } catch (error) {
         console.error("User search error:", error);
         res.status(500).send({ message: "Internal server error" });
-      }
-    });
-
-    // 21.17.9 Get Payment History by User (Client)
-
-    app.get("/payments", verifyFBToken, async (req, res) => {
-      try {
-        const email = req.query.email;
-
-        // 25.12 verify the payments according to email
-        console.log("decoded", req.decoded);
-        if (req.decoded.email !== email) {
-          return res.status(403).send({ message: "forbidden access" });
-        }
-
-        const filter = email ? { email } : {};
-
-        const payments = await paymentsCollection
-          .find(filter)
-          .sort({ paymentTime: -1 }) // latest first
-          .toArray();
-
-        res.send(payments);
-      } catch (error) {
-        console.error("Error fetching payments:", error);
-        res.status(500).send({ error: "Failed to load payments" });
       }
     });
 
@@ -391,6 +365,31 @@ async function run() {
       } catch (error) {
         console.error("❌ Payment processing error:", error);
         res.status(500).send({ error: "Payment failed" });
+      }
+    });
+
+    // 21.17.9 Get Payment History by User (Client)
+    app.get("/payments", verifyFBToken, async (req, res) => {
+      try {
+        const email = req.query.email;
+
+        // 25.12 verify the payments according to email
+        console.log("decoded", req.decoded);
+        if (req.decoded.email !== email) {
+          return res.status(403).send({ message: "forbidden access" });
+        }
+
+        const filter = email ? { email } : {};
+
+        const payments = await paymentsCollection
+          .find(filter)
+          .sort({ paymentTime: -1 }) // latest first
+          .toArray();
+
+        res.send(payments);
+      } catch (error) {
+        console.error("Error fetching payments:", error);
+        res.status(500).send({ error: "Failed to load payments" });
       }
     });
 
