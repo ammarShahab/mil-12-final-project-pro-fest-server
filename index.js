@@ -97,6 +97,17 @@ async function run() {
       next();
     };
 
+    // 37.0 my requirement is verify the rider as a like as verifyAdmin that one rider cannot see the other riders data
+    const verifyRider = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      if (!user || user.role !== "admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
+
     // POST: Add a parcel
     app.post("/parcels", async (req, res) => {
       const parcel = req.body;
@@ -196,7 +207,8 @@ async function run() {
     );
 
     // 36.4 create api to find the delivery_status
-    app.get("/rider/parcel", verifyFBToken, async (req, res) => {
+    // 37.1 implement verifyRider
+    app.get("/rider/parcel", verifyFBToken, verifyRider, async (req, res) => {
       try {
         const email = req.query.email;
 
@@ -218,6 +230,30 @@ async function run() {
       } catch (error) {
         console.error("Error fetching active parcels:", error);
         res.status(500).send({ message: "Failed to fetch active parcels" });
+      }
+    });
+
+    // 38.3 create the api for completed deliveries
+    app.get("/rider/completed-parcel", verifyFBToken, async (req, res) => {
+      try {
+        const email = req.query.email;
+
+        if (!email) {
+          return res
+            .status(400)
+            .send({ message: "assign_rider_email is required" });
+        }
+
+        const filter = {
+          assign_rider_email: email,
+          delivery_status: { $in: ["Delivered", "service_center_delivered"] },
+        };
+
+        const result = await parcelsCollection.find(filter).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Failed to fetch delivered parcels:", error);
+        res.status(500).send({ message: "Failed to fetch delivered parcels" });
       }
     });
 
