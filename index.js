@@ -326,9 +326,23 @@ async function run() {
             .send({ message: "delivery_status is required" });
         }
 
+        const updateFields = { delivery_status };
+
+        // Record current date
+        const now = new Date();
+
+        // Add human-readable date based on status
+        if (delivery_status === "In-Transit") {
+          updateFields.in_transit_date = now;
+          updateFields.in_transit_date_str = now.toLocaleDateString("en-GB");
+        } else if (delivery_status === "Delivered") {
+          updateFields.delivered_date = now;
+          updateFields.delivered_date_str = now.toLocaleDateString("en-GB");
+        }
+
         const result = await parcelsCollection.updateOne(
           { _id: new ObjectId(parcelId) },
-          { $set: { delivery_status } }
+          { $set: updateFields }
         );
 
         res.send(result);
