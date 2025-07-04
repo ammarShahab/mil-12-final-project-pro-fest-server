@@ -102,7 +102,7 @@ async function run() {
       const email = req.decoded.email;
       const query = { email };
       const user = await usersCollection.findOne(query);
-      if (!user || user.role !== "admin") {
+      if (!user || user.role !== "rider") {
         return res.status(403).send({ message: "forbidden access" });
       }
       next();
@@ -233,7 +233,7 @@ async function run() {
       }
     });
 
-    // 38.3 create the api for completed deliveries
+    // 38.3 create the api for completed deliveries and also implement a cash out feature
     app.get("/rider/completed-parcel", verifyFBToken, async (req, res) => {
       try {
         const email = req.query.email;
@@ -364,6 +364,24 @@ async function run() {
       } catch (error) {
         console.error("Failed to assign rider:", error);
         res.status(500).send({ message: "Assignment failed" });
+      }
+    });
+
+    // 38.4
+    app.patch("/parcels/:id/cashout", async (req, res) => {
+      try {
+        const id = req.params.id;
+        console.log("parcel cashed out", id);
+
+        const result = await parcelsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { cashed_out: true } }
+        );
+
+        res.send(result);
+      } catch (error) {
+        console.error("Failed to update cashout status:", error);
+        res.status(500).send({ message: "Cashout failed" });
       }
     });
 
