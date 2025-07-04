@@ -375,7 +375,7 @@ async function run() {
 
         const result = await parcelsCollection.updateOne(
           { _id: new ObjectId(id) },
-          { $set: { cashed_out: true } }
+          { $set: { cashed_out: true, cashed_out_date: new Date() } }
         );
 
         res.send(result);
