@@ -168,7 +168,7 @@ async function run() {
         }
 
         const options = {
-          sort: { creation_date: 1 },
+          sort: { creation_date: -1 },
         };
 
         const result = await parcelsCollection.find(filter, options).toArray();
@@ -644,13 +644,18 @@ async function run() {
       }
     });
 
+    // 40.9 create the tracking api
     app.get("/track/:trackingId", async (req, res) => {
-      const tracking_id = req.params.trackingId;
-
-      const parcel = await parcelsCollection.findOne({ tracking_id });
-      if (!parcel) return res.status(404).send({ message: "Parcel not found" });
-
-      res.send(parcel);
+      try {
+        const tracking_id = req.params.trackingId;
+        const logs = await trackingsCollection
+          .find({ tracking_id })
+          .sort({ timestamp: 1 })
+          .toArray();
+        res.send(logs);
+      } catch (err) {
+        res.status(500).send({ message: "Failed to fetch tracking data" });
+      }
     });
 
     app.get("/", (req, res) => {
