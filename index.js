@@ -168,7 +168,7 @@ async function run() {
         }
 
         const options = {
-          sort: { creation_date: -1 },
+          sort: { creation_date: 1 },
         };
 
         const result = await parcelsCollection.find(filter, options).toArray();
