@@ -50,6 +50,7 @@ async function run() {
     const paymentsCollection = db.collection("payments");
     const usersCollection = db.collection("users");
     const ridersCollection = db.collection("riders");
+    const trackingsCollection = db.collection("track");
     console.log("✅ Connected to MongoDB");
 
     // 25.3 create custom middleware for verify token
@@ -108,10 +109,36 @@ async function run() {
       next();
     };
 
+    // 40.0 my requirement is tracking a specific parcel by tracking id so created a backend helper function
+    async function logTrackingEvent(parcelId, tracking_id, status, actor = {}) {
+      await trackingsCollection.insertOne({
+        parcelId: new ObjectId(parcelId),
+        tracking_id,
+        status,
+        timestamp: new Date().toLocaleString(),
+        actor, // e.g., { type: "user", email, name }
+      });
+    }
+
     // POST: Add a parcel
     app.post("/parcels", async (req, res) => {
       const parcel = req.body;
+      // const parcelId = req.body.;
       const result = await parcelsCollection.insertOne(parcel);
+
+      // 40.1
+      await logTrackingEvent(
+        result.insertedId,
+        parcel.tracking_id,
+        "Submitted",
+        {
+          type: "user",
+          email: parcel.userEmail,
+          name: parcel.senderName,
+          timestamp: new Date().toLocaleString(),
+        }
+      );
+
       res.send(result);
     });
 
@@ -214,7 +241,8 @@ async function run() {
     app.patch("/parcels/:id/assign-rider", verifyFBToken, async (req, res) => {
       try {
         const parcelId = req.params.id;
-        const { riderId, riderName, riderEmail } = req.body;
+        const { riderId, riderName, riderEmail, trackingId } = req.body;
+        console.log(req.body);
 
         if (!riderId) {
           return res.status(400).send({ message: "riderId is required" });
@@ -231,6 +259,11 @@ async function run() {
             },
           }
         );
+        // 40.4
+        await logTrackingEvent(parcelId, trackingId, "Rider Assigned", {
+          type: "rider",
+          email: riderEmail,
+        });
 
         res.send(result);
       } catch (error) {
@@ -531,6 +564,7 @@ async function run() {
           paymentMethod,
           transactionId,
           payment_status,
+          trackingId,
         } = req.body;
 
         const paymentTime = new Date().toISOString();
@@ -550,6 +584,7 @@ async function run() {
           payment_status,
           paymentTime,
           transactionId,
+          trackingId,
         };
 
         console.log(paymentRecord);
@@ -557,6 +592,12 @@ async function run() {
         const paymentSaveResult = await paymentsCollection.insertOne(
           paymentRecord
         );
+        // 40.2
+        await logTrackingEvent(parcelId, trackingId, "Payment Confirmed", {
+          type: "user",
+          email: email,
+          timestamp: new Date().toLocaleString(),
+        });
 
         res.send(paymentSaveResult);
       } catch (error) {
@@ -588,6 +629,15 @@ async function run() {
         console.error("Error fetching payments:", error);
         res.status(500).send({ error: "Failed to load payments" });
       }
+    });
+
+    app.get("/track/:trackingId", async (req, res) => {
+      const tracking_id = req.params.trackingId;
+
+      const parcel = await parcelsCollection.findOne({ tracking_id });
+      if (!parcel) return res.status(404).send({ message: "Parcel not found" });
+
+      res.send(parcel);
     });
 
     app.get("/", (req, res) => {
