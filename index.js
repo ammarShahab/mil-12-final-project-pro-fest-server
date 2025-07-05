@@ -203,7 +203,14 @@ async function run() {
     app.patch("/parcels/:id/update-status", verifyFBToken, async (req, res) => {
       try {
         const parcelId = req.params.id;
-        const { delivery_status } = req.body;
+        // 40.7 added assign_rider_name, assign_rider_email,
+
+        const {
+          delivery_status,
+          tracking_id,
+          assign_rider_name,
+          assign_rider_email,
+        } = req.body;
 
         if (!delivery_status) {
           return res
@@ -229,6 +236,12 @@ async function run() {
           { _id: new ObjectId(parcelId) },
           { $set: updateFields }
         );
+        // 40.8
+        await logTrackingEvent(parcelId, tracking_id, delivery_status, {
+          type: "rider",
+          name: assign_rider_name,
+          email: assign_rider_email,
+        });
 
         res.send(result);
       } catch (error) {
