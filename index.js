@@ -115,148 +115,6 @@ async function run() {
       res.send(result);
     });
 
-    // 23.0 my requirement is create a user database to save user data by email and also check if the user is present during create user account it will not create user in db but if not present it will create user in db. By default add the user role=user
-    app.post("/users", async (req, res) => {
-      try {
-        const email = req.body.email;
-
-        let userExist = await usersCollection.findOne({ email });
-
-        if (userExist) {
-          return res
-            .status(200)
-            .send({ message: "user  already exists", inserted: false });
-        }
-
-        // 23.2 if user is not exists the userInfo that is created in 23.1 will be in req.body
-        const user = req.body;
-        const result = await usersCollection.insertOne(user);
-
-        res.send(result);
-      } catch (error) {
-        console.error("User check error:", error);
-        res.status(500).json({ message: "Internal server error" });
-      }
-    });
-
-    // 26.3 create a post api for riders
-    app.post("/riders", async (req, res) => {
-      const rider = req.body;
-
-      // rider.status = "Pending"; // enforce default
-      const result = await ridersCollection.insertOne(rider);
-      res.send(result);
-    });
-
-    // 35.0 my requirement is assign the parcel to the specific region rider and update the delivery status sending the rider name, email, id to the parcelsCollection
-    app.get("/riders", verifyFBToken, async (req, res) => {
-      try {
-        const district = req.query.district;
-        if (!district) {
-          return res
-            .status(400)
-            .send({ message: "district query is required" });
-        }
-
-        const riders = await ridersCollection
-          .find({ district /* status: "Approved"  */ })
-          .project({ _id: 1, name: 1, email: 1, district: 1 })
-          .toArray();
-
-        res.send(riders);
-      } catch (error) {
-        console.error("Failed to fetch riders:", error);
-        res.status(500).send({ message: "Server error" });
-      }
-    });
-
-    // 27.0 my requirement is create get api to send the pending riders data to ui and upon approve or reject the rider status will be save in db
-    // 31.9 implement the token to stop the user to see server side data manually
-    // 32.1 use verifyAdmin
-    app.get("/riders/pending", verifyFBToken, verifyAdmin, async (req, res) => {
-      try {
-        const pendingRiders = await ridersCollection
-          .find({ status: "Pending" })
-          .toArray();
-        res.send(pendingRiders);
-      } catch (err) {
-        console.error("Error fetching pending riders:", err);
-        res.status(500).send({ message: "Internal Server Error" });
-      }
-    });
-
-    // 31.10 but we also have to verify the api layer i.e user have token but his role is admin or not. this should be also verified.
-
-    // 28.1 create the approved rider api
-    // 32.2 use verifyAdmin
-    app.get(
-      "/riders/approved",
-      verifyFBToken,
-      verifyAdmin,
-      async (req, res) => {
-        try {
-          const approvedRiders = await ridersCollection
-            .find({ status: "Approved" })
-            .toArray();
-          res.send(approvedRiders);
-        } catch (error) {
-          console.error("Error fetching approved riders:", error);
-          res.status(500).send({ message: "Internal Server Error" });
-        }
-      }
-    );
-
-    // 36.4 create api to find the delivery_status
-    // 37.1 implement verifyRider
-    app.get("/rider/parcel", verifyFBToken, verifyRider, async (req, res) => {
-      try {
-        const email = req.query.email;
-
-        if (!email) {
-          return res.status(400).send({ message: "Email query is required" });
-        }
-
-        const filter = {
-          assign_rider_email: email,
-          delivery_status: { $in: ["Assigned", "In-Transit"] }, // ✅ match either
-        };
-
-        const options = {
-          sort: { creation_date: -1 }, // Most recent first
-        };
-
-        const result = await parcelsCollection.find(filter, options).toArray();
-        res.send(result);
-      } catch (error) {
-        console.error("Error fetching active parcels:", error);
-        res.status(500).send({ message: "Failed to fetch active parcels" });
-      }
-    });
-
-    // 38.3 create the api for completed deliveries and also implement a cash out feature
-    app.get("/rider/completed-parcel", verifyFBToken, async (req, res) => {
-      try {
-        const email = req.query.email;
-
-        if (!email) {
-          return res
-            .status(400)
-            .send({ message: "assign_rider_email is required" });
-        }
-
-        const filter = {
-          assign_rider_email: email,
-          delivery_status: { $in: ["Delivered", "service_center_delivered"] },
-        };
-
-        const result = await parcelsCollection.find(filter).toArray();
-        res.send(result);
-      } catch (error) {
-        console.error("Failed to fetch delivered parcels:", error);
-        res.status(500).send({ message: "Failed to fetch delivered parcels" });
-      }
-    });
-
     // 15.5 make the get api to show the parcel by email or show the all parcel for admin
     app.get("/parcels", verifyFBToken, async (req, res) => {
       try {
@@ -399,6 +257,193 @@ async function run() {
       }
     });
 
+    // 17.1 created delete api
+    app.delete("/parcels/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+
+        const query = { _id: new ObjectId(id) };
+        const result = await parcelsCollection.deleteOne(query);
+
+        res.send(result);
+      } catch (error) {
+        console.error("❌ Delete error:", error);
+        res.status(500).send({ error: "Failed to delete parcel" });
+      }
+    });
+
+    // 23.0 my requirement is create a user database to save user data by email and also check if the user is present during create user account it will not create user in db but if not present it will create user in db. By default add the user role=user
+    app.post("/users", async (req, res) => {
+      try {
+        const email = req.body.email;
+
+        let userExist = await usersCollection.findOne({ email });
+
+        if (userExist) {
+          return res
+            .status(200)
+            .send({ message: "user  already exists", inserted: false });
+        }
+
+        // 23.2 if user is not exists the userInfo that is created in 23.1 will be in req.body
+        const user = req.body;
+        const result = await usersCollection.insertOne(user);
+
+        res.send(result);
+      } catch (error) {
+        console.error("User check error:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
+    // 26.3 create a post api for riders
+    app.post("/riders", async (req, res) => {
+      const rider = req.body;
+
+      // rider.status = "Pending"; // enforce default
+      const result = await ridersCollection.insertOne(rider);
+      res.send(result);
+    });
+
+    // 35.0 my requirement is assign the parcel to the specific region rider and update the delivery status sending the rider name, email, id to the parcelsCollection
+    app.get("/riders", verifyFBToken, async (req, res) => {
+      try {
+        const district = req.query.district;
+        if (!district) {
+          return res
+            .status(400)
+            .send({ message: "district query is required" });
+        }
+
+        const riders = await ridersCollection
+          .find({ district /* status: "Approved"  */ })
+          .project({ _id: 1, name: 1, email: 1, district: 1 })
+          .toArray();
+
+        res.send(riders);
+      } catch (error) {
+        console.error("Failed to fetch riders:", error);
+        res.status(500).send({ message: "Server error" });
+      }
+    });
+
+    // 27.0 my requirement is create get api to send the pending riders data to ui and upon approve or reject the rider status will be save in db
+    // 31.9 implement the token to stop the user to see server side data manually
+    // 32.1 use verifyAdmin
+    app.get("/riders/pending", verifyFBToken, verifyAdmin, async (req, res) => {
+      try {
+        const pendingRiders = await ridersCollection
+          .find({ status: "Pending" })
+          .toArray();
+        res.send(pendingRiders);
+      } catch (err) {
+        console.error("Error fetching pending riders:", err);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
+    });
+
+    // 31.10 but we also have to verify the api layer i.e user have token but his role is admin or not. this should be also verified.
+
+    // 28.1 create the approved rider api
+    // 32.2 use verifyAdmin
+    app.get(
+      "/riders/approved",
+      verifyFBToken,
+      verifyAdmin,
+      async (req, res) => {
+        try {
+          const approvedRiders = await ridersCollection
+            .find({ status: "Approved" })
+            .toArray();
+          res.send(approvedRiders);
+        } catch (error) {
+          console.error("Error fetching approved riders:", error);
+          res.status(500).send({ message: "Internal Server Error" });
+        }
+      }
+    );
+
+    // 36.4 create api to find the delivery_status
+    // 37.1 implement verifyRider
+    app.get("/rider/parcel", verifyFBToken, verifyRider, async (req, res) => {
+      try {
+        const email = req.query.email;
+
+        if (!email) {
+          return res.status(400).send({ message: "Email query is required" });
+        }
+
+        const filter = {
+          assign_rider_email: email,
+          delivery_status: { $in: ["Assigned", "In-Transit"] }, // ✅ match either
+        };
+
+        const options = {
+          sort: { creation_date: -1 }, // Most recent first
+        };
+
+        const result = await parcelsCollection.find(filter, options).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching active parcels:", error);
+        res.status(500).send({ message: "Failed to fetch active parcels" });
+      }
+    });
+
+    // 38.3 create the api for completed deliveries and also implement a cash out feature
+    app.get("/rider/completed-parcel", verifyFBToken, async (req, res) => {
+      try {
+        const email = req.query.email;
+
+        if (!email) {
+          return res
+            .status(400)
+            .send({ message: "assign_rider_email is required" });
+        }
+
+        const filter = {
+          assign_rider_email: email,
+          delivery_status: { $in: ["Delivered", "service_center_delivered"] },
+        };
+
+        const result = await parcelsCollection.find(filter).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Failed to fetch delivered parcels:", error);
+        res.status(500).send({ message: "Failed to fetch delivered parcels" });
+      }
+    });
+
+    // 27.3 create patch api for update the status in db
+    app.patch("/riders/:id", async (req, res) => {
+      const id = req.params.id;
+      // 29.4 took the email from the body
+      const { status, email } = req.body;
+
+      try {
+        const result = await ridersCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { status } }
+        );
+
+        // 29.5 create query to find with email
+        const query = { email };
+        const updatedDoc = {
+          $set: {
+            role: "rider",
+          },
+        };
+        // 29.6 update the role using email
+        const roleResult = await usersCollection.updateOne(query, updatedDoc);
+        console.log("modified Count", roleResult.modifiedCount);
+
+        res.send(result);
+      } catch (error) {
+        console.error("Error updating rider status:", error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
+    });
+
     // 30.0 my requirement is admin can search user by email with a single word search and change the user role to admin/ user.
     // 30.1 creating a search api
     app.get("/users/search", async (req, res) => {
@@ -439,18 +484,23 @@ async function run() {
       }
     });
 
-    // 17.1 created delete api
-    app.delete("/parcels/:id", async (req, res) => {
+    // 30.5 update role api
+    app.patch("/users/role", async (req, res) => {
+      const { email, role } = req.body;
+
+      if (!email || !role) {
+        return res.status(400).send({ message: "Email and role are required" });
+      }
+
       try {
-        const id = req.params.id;
-
-        const query = { _id: new ObjectId(id) };
-        const result = await parcelsCollection.deleteOne(query);
-
+        const result = await usersCollection.updateOne(
+          { email },
+          { $set: { role } }
+        );
         res.send(result);
       } catch (error) {
-        console.error("❌ Delete error:", error);
-        res.status(500).send({ error: "Failed to delete parcel" });
+        console.error("Role update error:", error);
+        res.status(500).send({ message: "Internal Server Error" });
       }
     });
 
@@ -537,56 +587,6 @@ async function run() {
       } catch (error) {
         console.error("Error fetching payments:", error);
         res.status(500).send({ error: "Failed to load payments" });
-      }
-    });
-
-    // 27.3 create patch api for update the status in db
-    app.patch("/riders/:id", async (req, res) => {
-      const id = req.params.id;
-      // 29.4 took the email from the body
-      const { status, email } = req.body;
-
-      try {
-        const result = await ridersCollection.updateOne(
-          { _id: new ObjectId(id) },
-          { $set: { status } }
-        );
-
-        // 29.5 create query to find with email
-        const query = { email };
-        const updatedDoc = {
-          $set: {
-            role: "rider",
-          },
-        };
-        // 29.6 update the role using email
-        const roleResult = await usersCollection.updateOne(query, updatedDoc);
-        console.log("modified Count", roleResult.modifiedCount);
-
-        res.send(result);
-      } catch (error) {
-        console.error("Error updating rider status:", error);
-        res.status(500).send({ message: "Internal Server Error" });
-      }
-    });
-
-    // 30.5 update role api
-    app.patch("/users/role", async (req, res) => {
-      const { email, role } = req.body;
-
-      if (!email || !role) {
-        return res.status(400).send({ message: "Email and role are required" });
-      }
-
-      try {
-        const result = await usersCollection.updateOne(
-          { email },
-          { $set: { role } }
-        );
-        res.send(result);
-      } catch (error) {
-        console.error("Role update error:", error);
-        res.status(500).send({ message: "Internal Server Error" });
       }
     });
 
