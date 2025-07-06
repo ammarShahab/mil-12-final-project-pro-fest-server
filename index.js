@@ -109,7 +109,7 @@ async function run() {
       next();
     };
 
-    // 40.0 my requirement is tracking a specific parcel by tracking id so created a backend helper function
+    // 40.0 my requirement is tracking a specific parcel by user by tracking id so created a backend helper function
     async function logTrackingEvent(parcelId, tracking_id, status, actor = {}) {
       await trackingsCollection.insertOne({
         parcelId: new ObjectId(parcelId),
@@ -285,7 +285,7 @@ async function run() {
       }
     });
 
-    // 38.4
+    // 38.4 created the api for cashout
     app.patch("/parcels/:id/cashout", async (req, res) => {
       try {
         const id = req.params.id;
@@ -436,7 +436,8 @@ async function run() {
       }
     });
 
-    // 38.3 create the api for completed deliveries and also implement a cash out feature
+    // 38.0 my requirement is rider can see the completed deliveries and cashout the money
+    // 38.3 create the api for completed deliveries
     app.get("/rider/completed-parcel", verifyFBToken, async (req, res) => {
       try {
         const email = req.query.email;
