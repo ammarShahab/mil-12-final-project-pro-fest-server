@@ -342,6 +342,30 @@ async function run() {
       }
     });
 
+    // 42.0 my requirement is in admin dashboard i want show the delivery status in the dashboard using aggregate also show a pie Chart
+    app.get("/parcel/delivery/status-count", async (req, res) => {
+      try {
+        const pipeline = [
+          // 42.1 make a group for all the delivery status
+          { $group: { _id: "$delivery_status", count: { $sum: 1 } } },
+          // 42.2 change the _id to status in $project
+          {
+            $project: {
+              _id: 0,
+              status: "$_id",
+              count: 1,
+            },
+          },
+        ];
+        const data = await parcelsCollection.aggregate(pipeline).toArray();
+
+        res.send(data);
+      } catch (error) {
+        console.error("Error fetching status counts:", error);
+        res.status(500).json({ error: "Failed to fetch status counts" });
+      }
+    });
+
     // 26.3 create a post api for riders
     app.post("/riders", async (req, res) => {
       const rider = req.body;
